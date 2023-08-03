@@ -1,6 +1,6 @@
 # Omori Final Battle Deltarune Style
 
-<img src="images/title_preview.png" alt="preview1" width="300"/> <img src="images/preview1.png" alt="preview2" width="300"/> <img src="images/preview2.png" alt="preview3" width="300"/> <img src="Sprites/gameicon.png" alt="preview1" width="250"/>
+<img src="Sprites/gameicon.png" alt="preview1" width="200"/> <img src="images/title_preview.png" alt="preview1" width="300"/> <img src="images/preview1.png" alt="preview2" width="300"/> <img src="images/preview2.png" alt="preview3" width="300"/>
 
 Download the game [here](https://gamejolt.com/games/omori-deltarune-fangame/828734).
 
