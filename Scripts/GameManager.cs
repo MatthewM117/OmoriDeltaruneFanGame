@@ -88,8 +88,16 @@ public class GameManager : MonoBehaviour
     [SerializeField] Slider p2Health;
     [SerializeField] TextMeshProUGUI p2HealthText;
 
+    [SerializeField] GameObject attackIndicatorParent;
+    [SerializeField] GameObject attackIndicator;
+    [SerializeField] GameObject attackIndicatorAllegro;
+    [SerializeField] GameObject attackIndicatorAllegro2;
+    [SerializeField] GameObject attackIndicatorAllegroFinal;
+
+    [SerializeField] GameObject p2GO;
+    [SerializeField] GameObject kel;
+
     int currentBattlePhase = 0;
-    //int currentBattlePhase = 5;
     bool waitForButtonPress = false;
     bool waitForButtonPressSkill = false;
     bool skillsIsShowing = false;
@@ -121,7 +129,6 @@ public class GameManager : MonoBehaviour
     bool advancedFight = false;
 
     string phase = "white"; // phases: 1st = "white", 2nd = "red", 3rd = "mari" 4th = "hanging"
-    //string phase = "hanging";
 
     readonly string[] omoriDialogue =
     {
@@ -170,6 +177,12 @@ public class GameManager : MonoBehaviour
 
     [HideInInspector] public bool allowEscapePress = true;
 
+    [HideInInspector] public int currentDamage = 0;
+    [HideInInspector] public int numAttackIndicatorsActive = 0;
+    [HideInInspector] public bool oneAllegroHit = false;
+
+    bool isMuted = false;
+
     // Start is called before the first frame update
     void Start()
     {
@@ -186,6 +199,8 @@ public class GameManager : MonoBehaviour
         if (GlobalData.instance.is2Player)
         {
             p2Profile.SetActive(true);
+            p2GO.SetActive(true);
+            kel.SetActive(true);
         }
     }
 
@@ -282,6 +297,29 @@ public class GameManager : MonoBehaviour
             AudioManager.instance.StopAudio("omori");
             AudioManager.instance.StopAudio("alter");
             SceneManager.LoadScene("TitleScene");
+        }
+
+        if (Input.GetKeyDown(KeyCode.M))
+        {
+            isMuted = !isMuted;
+
+            if (isMuted)
+            {
+                AudioManager.instance.StopAudio("omori");
+                AudioManager.instance.StopAudio("alter");
+            }
+            else
+            {
+                if (phase == "mari" || phase == "hanging" || phase == "something")
+                {
+                    AudioManager.instance.PlayAudio("alter");
+                }
+                else
+                {
+                    AudioManager.instance.PlayAudio("omori");
+                }
+                
+            }
         }
     }
 
@@ -408,21 +446,28 @@ public class GameManager : MonoBehaviour
         battleBoxAnimator.Play("spin", 0, 0f);
     }
 
+    public void ExtendBattleBoxHorizontally()
+    {
+        battleBoxAnimator.Play("extend_horizontal", 0, 0f);
+    }
+
     public IEnumerator EndAttack()
     {
         if (!p1Dead)
         {
             pm.SetDisableMovement(true);
             pm.SetHitDebounce(true);
-            player.DOMove(new Vector3(-7.19f, -0.75f, 0), 1f);
+            player.DOMove(new Vector3(-7.19f, -0.75f, 0), 0.5f);
         }
 
         if (GlobalData.instance.is2Player && !p2Dead)
         {
             p2m.SetDisableMovement(true);
             p2m.SetHitDebounce(true);
-            player2.DOMove(new Vector3(11.05f, 6.83f, 0), 1f);
+            player2.DOMove(new Vector3(11.05f, 6.83f, 0), 0.5f);
         }
+
+        battleBoxAnimator.Play("spinout", 0, 0);
 
         yield return new WaitForSeconds(0.5f);
 
@@ -498,7 +543,10 @@ public class GameManager : MonoBehaviour
             redNoHandsBG.SetActive(true);
             redHandsBG.SetActive(false);
             AudioManager.instance.StopAudio("omori");
-            AudioManager.instance.PlayAudio("alter");
+            if (!isMuted)
+            {
+                AudioManager.instance.PlayAudio("alter");
+            }
         }
         else if (omoriHealth.value <= 0 && phase == "mari")
         {
@@ -587,7 +635,7 @@ public class GameManager : MonoBehaviour
         {
             advancedFight = false;
         }
-        else if (phase == "mari" && currentBattlePhase < 11)
+        else if (phase == "mari" && currentBattlePhase < 12)
         {
             currentBattlePhase++;
             advancedFight = true;
@@ -596,7 +644,7 @@ public class GameManager : MonoBehaviour
         {
             advancedFight = false;
         }
-        else if (phase == "hanging" && currentBattlePhase < 14)
+        else if (phase == "hanging" && currentBattlePhase < 18)
         {
             currentBattlePhase++;
             advancedFight = true;
@@ -606,15 +654,31 @@ public class GameManager : MonoBehaviour
             advancedFight = true;
         }
         AudioManager.instance.PlayAudio("sys_select");
-        StartCoroutine(AttackOmori());
+
+        dialogueText.text = string.Empty;
+        skillsBox.DOAnchorPos(new Vector2(0, -165), 0.5f).SetEase(Ease.OutQuad);
+        attackIndicatorParent.SetActive(true);
+        Instantiate(attackIndicator, attackIndicatorParent.transform);
     }
 
-    IEnumerator AttackOmori()
+    public void AttackOmoriHelper(int damage)
+    {
+        StartCoroutine(AttackOmori(damage));
+    }
+
+    IEnumerator AttackOmori(int damage)
     {
         sunnySlash.SetActive(true);
-        int damage = Random.Range(25, 50);
+        damage = Mathf.RoundToInt(damage);
         omoriHealth.value -= damage;
-        dialogueText.text = "SUNNY attacks! OMORI takes " + damage + " damage!";
+        if (damage == 0)
+        {
+            dialogueText.text = "SUNNY attacks! The attack missed!";
+        }
+        else
+        {
+            dialogueText.text = "SUNNY attacks! OMORI takes " + damage + " damage!";
+        }
         sunnyAnimator.Play("allegro_attack", 0, 0f);
         sunnySlashAnimator.Play("sunny_slash", 0, 0f);
         AudioManager.instance.PlayAudio("violin_attack");
@@ -671,7 +735,7 @@ public class GameManager : MonoBehaviour
         {
             advancedFight = false;
         }
-        else if (phase == "mari" && currentBattlePhase < 11)
+        else if (phase == "mari" && currentBattlePhase < 12)
         {
             currentBattlePhase++;
             advancedFight = true;
@@ -680,7 +744,7 @@ public class GameManager : MonoBehaviour
         {
             advancedFight = false;
         }
-        else if (phase == "hanging" && currentBattlePhase < 17)
+        else if (phase == "hanging" && currentBattlePhase < 18)
         {
             currentBattlePhase++;
             advancedFight = true;
@@ -690,15 +754,44 @@ public class GameManager : MonoBehaviour
             advancedFight = true;
         }
         AudioManager.instance.PlayAudio("sys_select");
+
+        StartCoroutine(InstantiateAllegro());
+    }
+
+    IEnumerator InstantiateAllegro()
+    {
+        dialogueText.text = string.Empty;
+        numAttackIndicatorsActive = 0;
+        skillsBox.DOAnchorPos(new Vector2(0, -165), 0.5f).SetEase(Ease.OutQuad);
+        attackIndicatorParent.SetActive(true);
+        Instantiate(attackIndicatorAllegro, attackIndicatorParent.transform);
+        numAttackIndicatorsActive++;
+        yield return new WaitForSeconds(Random.Range(0.2f, 0.5f));
+        Instantiate(attackIndicatorAllegro2, attackIndicatorParent.transform);
+        numAttackIndicatorsActive++;
+        yield return new WaitForSeconds(Random.Range(0.2f, 0.5f));
+        Instantiate(attackIndicatorAllegroFinal, attackIndicatorParent.transform);
+        numAttackIndicatorsActive++;
+    }
+
+    public void AllegroAttackHelper()
+    {
         StartCoroutine(AllegroAttack());
     }
 
     IEnumerator AllegroAttack()
     {
         sunnySlash.SetActive(true);
-        int damage = Random.Range(120, 160);
+        int damage = currentDamage;
         omoriHealth.value -= damage;
-        dialogueText.text = "SUNNY strikes three times. OMORI took " + damage + " damage!";
+        if (damage == 0)
+        {
+            dialogueText.text = "SUNNY attacks! The attack missed!";
+        }
+        else
+        {
+            dialogueText.text = "SUNNY attacks! OMORI takes " + damage + " damage!";
+        }
         skillsBox.DOAnchorPos(new Vector2(0, -165), 0.5f).SetEase(Ease.OutQuad);
         sunnyAnimator.Play("allegro_attack", 0, 0f);
         sunnySlashAnimator.Play("allegro", 0, 0f);
@@ -731,12 +824,16 @@ public class GameManager : MonoBehaviour
             allegroButtonText.color = Color.white;
         }
 
+        currentDamage = 0;
         yield return new WaitForSeconds(1.5f);
         StartCoroutine(StartAttack());
     }
 
     IEnumerator StartAttack()
     {
+        attackIndicatorParent.SetActive(false);
+        oneAllegroHit = false;
+        numAttackIndicatorsActive = 0;
         stopTextAudio = true;
         ShowBattleBox();
         sunnyIdle.SetActive(true);
@@ -748,7 +845,6 @@ public class GameManager : MonoBehaviour
         {
             player2.DOMove(new Vector3(0, 0.39f, 0), 1f);
             p2m.SetDisableMovement(false);
-            Debug.Log("SHOULD BE HERE!!");
         }
 
         pBoxRectTransform.DOAnchorPos(new Vector2(0, 0), 0.5f).SetEase(Ease.OutQuad);
@@ -841,27 +937,30 @@ public class GameManager : MonoBehaviour
                     StartCoroutine(attacks.KnifeFollowAttack());
                     break;
                 case 11:
-                    StartCoroutine(attacks.RandomRedHands(5, true));
+                    StartCoroutine(attacks.PlatformAttack());
                     break;
                 case 12:
-                    StartCoroutine(attacks.FourKnives());
+                    StartCoroutine(attacks.RandomRedHands(5, true));
                     break;
                 case 13:
-                    StartCoroutine(attacks.RandomVerticalRedHands(10, true));
+                    StartCoroutine(attacks.FourKnives());
                     break;
                 case 14:
-                    StartCoroutine(attacks.FastHAndVSlashes());
+                    StartCoroutine(attacks.RandomVerticalRedHands(10, true));
                     break;
                 case 15:
+                    StartCoroutine(attacks.FastHAndVSlashes());
+                    break;
+                case 16:
                     StartCoroutine(attacks.SlashAttack(20, false));
                     yield return new WaitForSeconds(0.2f);
                     StartCoroutine(attacks.KnifeAttack(17, true, true));
                     break;
-                case 16:
+                case 17:
                     StartCoroutine(attacks.SlashAttack(20, false));
                     StartCoroutine(attacks.RandomRedHands(5, true));
                     break;
-                case 17:
+                case 18:
                     StartCoroutine(attacks.RandomRedHands(5, false));
                     StartCoroutine(attacks.KnifeAttack(17, true, true));
                     break;

@@ -26,8 +26,17 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] SpriteRenderer playerSR;
     [SerializeField] Sprite brokenHeart;
     [SerializeField] SpriteRenderer black;
+    [SerializeField] Sprite platformerHeart;
+    [SerializeField] Sprite platformerHeartBroken;
+    [SerializeField] Sprite playerHeartNormal;
 
     GameManager gm;
+
+    CharacterController2D cc;
+
+    bool isPlatformer = false;
+    readonly float platformerSpeed = 20f;
+    bool isJumping = false;
 
     // Start is called before the first frame update
     void Start()
@@ -35,20 +44,49 @@ public class PlayerMovement : MonoBehaviour
         Time.timeScale = 1;
         rb = GetComponent<Rigidbody2D>();
         gm = GameObject.Find("GameManager").GetComponent<GameManager>();
+        cc = GetComponent<CharacterController2D>();
     }
 
     // Update is called once per frame
     void Update()
     {
         if (disableMovement) return;
-        movement.x = Input.GetAxisRaw("Horizontal");
-        movement.y = Input.GetAxisRaw("Vertical");
+        
+        if (!isPlatformer)
+        {
+            movement.x = Input.GetAxisRaw("Horizontal");
+            movement.y = Input.GetAxisRaw("Vertical");
+        }
+        else
+        {
+            movement.x = Input.GetAxisRaw("Horizontal") * platformerSpeed;
+        }
+
+        if (Input.GetKeyDown(KeyCode.UpArrow))
+        {
+            isJumping = true;
+        }
+        else if (Input.GetKeyUp(KeyCode.UpArrow) && isJumping)
+        {
+            isJumping = false;
+            if (rb.velocity.y > 0)
+            {
+                rb.velocity = new Vector2(rb.velocity.x, rb.velocity.y * 0.5f);
+            }
+        }
     }
 
     private void FixedUpdate()
     {
         if (disableMovement) return;
-        rb.MovePosition(rb.position + speed * Time.fixedDeltaTime * movement.normalized);
+        if (!isPlatformer)
+        {
+            rb.MovePosition(rb.position + speed * Time.fixedDeltaTime * movement.normalized);
+        }
+        else
+        {
+            cc.Move(movement.x * Time.fixedDeltaTime, false, isJumping);
+        }
     }
 
     private void OnTriggerEnter2D(Collider2D collision)
@@ -60,11 +98,11 @@ public class PlayerMovement : MonoBehaviour
 
             if (IsAfraid())
             {
-                StartCoroutine(DecreaseHealth(Random.Range(115, 163)));
+                StartCoroutine(DecreaseHealth(Random.Range(60, 100)));
             }
             else
             {
-                StartCoroutine(DecreaseHealth(Random.Range(50, 100)));
+                StartCoroutine(DecreaseHealth(Random.Range(30, 60)));
             }
             GlobalData.instance.gotHit = true;
         }
@@ -106,7 +144,14 @@ public class PlayerMovement : MonoBehaviour
             gm.allowEscapePress = false;
             Time.timeScale = 0.1f;
             disableMovement = true;
-            playerSR.sprite = brokenHeart;
+            if (isPlatformer)
+            {
+                playerSR.sprite = platformerHeartBroken;
+            }
+            else
+            {
+                playerSR.sprite = brokenHeart;
+            }
             AudioManager.instance.StopAudio("omori");
             AudioManager.instance.StopAudio("alter");
             AudioManager.instance.PlayAudio("dead");
@@ -120,7 +165,14 @@ public class PlayerMovement : MonoBehaviour
         {
             hitDebounce = true;
             disableMovement = true;
-            playerSR.sprite = brokenHeart;
+            if (isPlatformer)
+            {
+                playerSR.sprite = platformerHeartBroken;
+            }
+            else
+            {
+                playerSR.sprite = brokenHeart;
+            }
             gm.onePlayerDead = true;
             gm.p1Dead = true;
             playerHealth.value = 0;
@@ -184,6 +236,23 @@ public class PlayerMovement : MonoBehaviour
     public bool IsAfraid()
     {
         return emotionText.text == "Afraid";
+    }
+
+    public void SetIsPlatformer(bool newValue)
+    {
+        isPlatformer = newValue;
+
+        if (newValue)
+        {
+            rb.gravityScale = 1;
+            playerSR.sprite = platformerHeart;
+        }
+        else
+        {
+            rb.gravityScale = 0;
+            rb.velocity = Vector2.zero;
+            playerSR.sprite = playerHeartNormal;
+        }
     }
 
     IEnumerator FadeToBlack()

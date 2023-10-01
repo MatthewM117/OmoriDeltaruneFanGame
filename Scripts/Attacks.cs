@@ -27,6 +27,11 @@ public class Attacks : MonoBehaviour
 
     [SerializeField] GameObject something;
 
+    [SerializeField] GameObject knifeBorder;
+    [SerializeField] GameObject platform1;
+    [SerializeField] GameObject platform2;
+    [SerializeField] GameObject platform3;
+
     [SerializeField] PlayerMovement pm;
 
     GameManager gm;
@@ -483,6 +488,79 @@ public class Attacks : MonoBehaviour
         Instantiate(slashAttackObj, new Vector3(1.95f, -0.79f, 0), Quaternion.Euler(0, 0, 44.448f));
 
         yield return new WaitForSeconds(1);
+        StartCoroutine(gm.EndAttack());
+    }
+
+    public IEnumerator PlatformAttack()
+    {
+        if (!gm.p1Dead)
+        {
+            pm.SetDisableMovement(true);
+        }
+
+        if (GlobalData.instance.is2Player && !gm.p2Dead)
+        {
+            p2m.SetDisableMovement(true);
+        }
+        yield return new WaitForSeconds(0.25f);
+        gm.ExtendBattleBoxHorizontally();
+        yield return new WaitForSeconds(0.25f);
+        if (!gm.p1Dead)
+        {
+            pm.SetIsPlatformer(true);
+        }
+
+        if (GlobalData.instance.is2Player && !gm.p2Dead)
+        {
+            p2m.SetIsPlatformer(true);
+        }
+        platform1.SetActive(true);
+        platform2.SetActive(true);
+        platform3.SetActive(true);
+        float y = -3.25f;
+        Instantiate(knifeBorder, new Vector3(-3.59f, y, 0), Quaternion.identity);
+        Instantiate(knifeBorder, new Vector3(-1.77f, y, 0), Quaternion.identity);
+        Instantiate(knifeBorder, new Vector3(-0.05f, y, 0), Quaternion.identity);
+        Instantiate(knifeBorder, new Vector3(1.87f, y, 0), Quaternion.identity);
+        Instantiate(knifeBorder, new Vector3(3.69f, y, 0), Quaternion.identity);
+        yield return new WaitForSeconds(0.5f);
+        Instantiate(knifeBorder, new Vector3(-2.68f, y, 0), Quaternion.identity);
+        
+        Instantiate(knifeBorder, new Vector3(-0.86f, y, 0), Quaternion.identity);
+        
+        Instantiate(knifeBorder, new Vector3(0.96f, y, 0), Quaternion.identity);
+        
+        Instantiate(knifeBorder, new Vector3(2.78f, y, 0), Quaternion.identity);
+
+        if (!gm.p1Dead)
+        {
+            pm.SetDisableMovement(false);
+        }
+
+        if (GlobalData.instance.is2Player && !gm.p2Dead)
+        {
+            p2m.SetDisableMovement(false);
+        }
+
+        GameObject newKnifeLeft = Instantiate(knifeFollow, new Vector3(-4.09f, 2.24f, 0), Quaternion.Euler(0, 0, 34.815f));
+        newKnifeLeft.transform.localScale = new Vector3(-1, 1, 1);
+        yield return new WaitForSeconds(2);
+        Instantiate(knifeFollow, new Vector3(4.09f, 2.24f, 0), Quaternion.Euler(0, 0, 34.815f));
+
+        yield return new WaitForSeconds(15);
+        platform1.SetActive(false);
+        platform2.SetActive(false);
+        platform3.SetActive(false);
+        if (!gm.p1Dead)
+        {
+            pm.SetIsPlatformer(false);
+        }
+
+        if (GlobalData.instance.is2Player && !gm.p2Dead)
+        {
+            p2m.SetIsPlatformer(false);
+        }
+        
         StartCoroutine(gm.EndAttack());
     }
 
